@@ -180,171 +180,164 @@ button:hover { background: var(--neutral-dark); }
 
   <h1>Family Fun Walk Registration Form 2026</h1>
 
-<!-- Event / Registration Information Banner -->
-<div style="
-  background:#fff7e6;
-  border-left:5px solid var(--accent-orange);
-  padding:15px 18px;
-  margin:15px 0 25px 0;
-  border-radius:6px;
-  font-size:15px;
-  line-height:1.55;
-  color:#333;">
-  
-  <div style="font-weight:bold; color:var(--neutral-dark); margin-bottom:8px;">
-    Quick Event Summary
+  <!-- Event / Registration Information Banner -->
+  <div style="
+    background:#fff7e6;
+    border-left:5px solid var(--accent-orange);
+    padding:15px 18px;
+    margin:15px 0 25px 0;
+    border-radius:6px;
+    font-size:15px;
+    line-height:1.55;
+    color:#333;">
+    <div style="font-weight:bold; color:var(--neutral-dark); margin-bottom:8px;">
+      Quick Event Summary
+    </div>
+    <ul style="margin:0; padding-left:18px;">
+      <li><b>Routes:</b> Normal • Challenge • Runners</li>
+      <li><b>Fees:</b> Groups (3+) — <b>$20</b> per person • Individuals — <b>$25</b> per person</li>
+      <li><b>Giveaways:</b> T‑shirt + giveaway (while supplies last)</li>
+      <li><b>Payments:</b> Cash, Cheque, Card — at any Retail Banking Unit</li>
+      <li><b>Contact:</b> 440-2111 OR 444-2667 (COOP) for further information.</li>
+      <li><b>Beneficiary:</b> Grenada Food and Nutrition Council.</li>
+    </ul>
   </div>
-
-  <ul style="margin:0; padding-left:18px;">
-    <li><b>Routes:</b> Normal • Challenge • Runners</li>
-    <li><b>Fees:</b> Groups (3+) — <b>$20</b> per person • Individuals — <b>$25</b> per person</li>
-    <li><b>Giveaways:</b> T‑shirt + giveaway (while supplies last)</li>
-    <li><b>Payments:</b> Cash, Cheque, Card — at any Retail Banking Unit</li>
-    <li><b>Contact:</b> 440-2111 OR 444-2667 (COOP) for further information.</li>
-    <li><b>Beneficiary:</b> Grenada Food and Nutrition Council.</li>
-
-
-  </ul>
-
-</div>
-
 
   <!-- Accessible error summary -->
   <div id="errorSummary" class="hidden" role="alert" aria-live="polite"></div>
 
-  <!-- Section 1: Registration Type -->
-  <h2>Registration Type</h2>
-  <label><input type="radio" name="regType" value="individual" onclick="showSections()"> Individual</label>
-  <label><input type="radio" name="regType" value="group" onclick="showSections()"> Group</label>
-  <label><input type="radio" name="regType" value="addMembers" onclick="showSections()"> Add Members to Existing Group</label>
+  <!-- =========================================
+       FORM: everything is inside this <form>
+       ========================================= -->
+  <form id="registrationForm" onsubmit="event.preventDefault(); confirmSubmit();">
 
-  <!-- SECTION 2: Group Information -->
-  <div id="groupInfo" class="hidden">
-    <h2>Group Information</h2>
+    <!-- Section 1: Registration Type -->
+    <h2>Registration Type</h2>
+    <label><input type="radio" name="regType" value="individual" onclick="showSections()"> Individual</label>
+    <label><input type="radio" name="regType" value="group" onclick="showSections()"> Group</label>
+    <label><input type="radio" name="regType" value="addMembers" onclick="showSections()"> Add Members to Existing Group</label>
 
-    <label for="groupName">Group Name</label>
-    <input type="text" id="groupName">
+    <!-- Section 2: Group Information -->
+    <div id="groupInfo" class="hidden">
+      <h2>Group Information</h2>
 
-    <label for="coordName">Coordinator Name</label>
-    <input type="text" id="coordName">
+      <label for="groupName">Group Name</label>
+      <input type="text" id="groupName">
 
-    <label for="coordEmail">Email</label>
-    <input type="email" id="coordEmail">
+      <label for="coordName">Coordinator Name</label>
+      <input type="text" id="coordName">
 
-    <label for="coordPhone">Phone</label>
-    <input type="text" id="coordPhone">
+      <label for="coordEmail">Email</label>
+      <input type="email" id="coordEmail">
 
-    <label for="groupType">Group Type</label>
-    <select id="groupType" onchange="toggleWorkSize()">
+      <label for="coordPhone">Phone</label>
+      <input type="text" id="coordPhone">
+
+      <label for="groupType">Group Type</label>
+      <select id="groupType" onchange="toggleWorkSize()">
+        <option value="">Select...</option>
+        <option value="Family">Family</option>
+        <option value="Work">Work</option>
+        <option value="School">School</option>
+        <option value="Community">Community</option>
+        <option value="Church">Church</option>
+      </select>
+
+      <div id="workSizeDiv" class="hidden">
+        <label for="workSize">Work Group Size</label>
+        <select id="workSize">
+          <option value="">Select...</option>
+          <option value="Micro">1-10 (Micro)</option>
+          <option value="Small">11-49 (Small)</option>
+          <option value="Medium">50-99 (Medium)</option>
+          <option value="Large">100+ (Large)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Section 3: Add Members to Existing Group -->
+    <div id="existingGroupDiv" class="hidden">
+      <h2>Add Members to Existing Group</h2>
+      <label for="existingGroupID">Enter Group ID</label>
+      <input type="text" id="existingGroupID">
+    </div>
+
+    <!-- Section 4: Participant Information -->
+    <h2>Participant Information</h2>
+    <div id="participantsContainer"></div>
+    <button type="button" id="addParticipantBtn" onclick="addParticipant()">Add Another Participant</button>
+
+    <!-- Section: Event and Payment -->
+    <h2>Event Details</h2>
+    <label for="eventLocation">Event Location</label>
+    <select id="eventLocation">
       <option value="">Select...</option>
-      <option value="Family">Family</option>
-      <option value="Work">Work</option>
-      <option value="School">School</option>
-      <option value="Community">Community</option>
-      <option value="Church">Church</option>
     </select>
 
-    <div id="workSizeDiv" class="hidden">
-      <label for="workSize">Work Group Size</label>
-      <select id="workSize">
-        <option value="">Select...</option>
-        <option value="Micro">1-10 (Micro)</option>
-        <option value="Small">11-49 (Small)</option>
-        <option value="Medium">50-99 (Medium)</option>
-        <option value="Large">100+ (Large)</option>
-      </select>
+    <h2>Payment</h2>
+    <label for="paymentType">Payment Type</label>
+    <div id="paymentInstructions" class="hidden payment-box"></div>
+    <select id="paymentType">
+      <option value="">Select...</option>
+      <option value="Cash">Cash</option>
+      <option value="Card">Card</option>
+      <option value="Cheque">Cheque</option>
+    </select>
+
+    <label for="donation">Donation Amount $ (optional)</label>
+    <input type="number" id="donation" min="0" step="1">
+
+    <!-- WAIVER -->
+    <h2>Waiver &amp; Declaration</h2>
+    <div class="waiver-box">
+      <p>
+        I/We hereby waive all claims against the Grenada Co-operative Bank Limited and all its alliance partners associated with this event, for injury or loss.<br>
+        I/We might suffer by participation in, or as a result of this event.<br><br>
+        I/We grant permission to each of the foregoing to use my/our name, image, photographs, videotapes and any other media or record of the event for legitimate purposes, including promotions without compensation to me/us.<br><br>
+        I/We acknowledge that the Grenada Co-operative Bank Limited has the right to alter, change, cancel and or postpone the event at their sole discretion.<br><br>
+        I/We warrant that all statements made in this agreement are true and correct and I/We understand that the organizers have relied on them in allowing me to participate in the event.<br><br>
+        I/We have read the foregoing, understand its contents and intentionally and voluntarily certify compliance by accepting this waiver.
+      </p>
+
+      <label class="waiver-label">
+        <input type="checkbox" id="waiverAgree" required>
+        I have read and agree to the waiver above.
+      </label>
+
+      <label for="waiverFullName">Full Name (Digital Signature)</label>
+      <input type="text" id="waiverFullName" placeholder="Enter your full name" required>
     </div>
-  </div>
 
-  <!-- SECTION 3: Add Members to Existing Group -->
-<div id="existingGroupDiv" class="hidden">
-  <h2>Add Members to Existing Group</h2>
+    <!-- ACTIONS -->
+    <button type="button" id="reviewBtn" onclick="reviewRegistration()">Review Registration</button>
+    <button type="submit" id="submitBtn" class="hidden">Submit Registration</button>
 
-  <label for="existingGroupID">Enter Group ID</label>
-  <input type="text" id="existingGroupID">
-</div>
-
-  <!-- SECTION 4: Participant Information -->
-  <h2>Participant Information</h2>
-  <div id="participantsContainer"></div>
-
-  <button type="button" id="addParticipantBtn" onclick="addParticipant()">Add Another Participant</button>
-
-  <!-- SECTION: Event and Payment -->
-  <h2>Event Details</h2>
-  <label for="eventLocation">Event Location</label>
-  <select id="eventLocation">
-    <option value="">Select...</option>
-  </select>
-
-  <h2>Payment</h2>
-  <label for="paymentType">Payment Type</label>
-  <div id="paymentInstructions" class="hidden payment-box"></div>
-
-  <select id="paymentType">
-    <option value="">Select...</option>
-    <option value="Cash">Cash</option>
-    <option value="Card">Card</option>
-    <option value="Cheque">Cheque</option>
-  </select>
-
-  <label for="donation">Donation Amount $ (optional)</label>
-  <input type="number" id="donation" min="0" step="1">
-
-  <!-- WAIVER SECTION -->
-  <h2>Waiver &amp; Declaration</h2>
-  <div class="waiver-box">
-    <p>
-      I/We hereby waive all claims against the Grenada Co-operative Bank Limited and all its alliance partners associated with this event, for injury or loss.
-      <br>
-      I/We might suffer by participation in, or as a result of this event.
-      <br><br>
-      I/We grant permission to each of the foregoing to use my/our name, image, photographs, videotapes and any other media or record of the event for legitimate purposes, including promotions without compensation to me/us.
-      <br><br>
-      I/We acknowledge that the Grenada Co-operative Bank Limited has the right to alter, change, cancel and or postpone the event at their sole discretion.
-      <br><br>
-      I/We warrant that all statements made in this agreement are true and correct and I/We understand that the organizers have relied on them in allowing me to participate in the event.
-      <br><br>
-      I/We have read the foregoing, understand its contents and intentionally and voluntarily certify compliance by accepting this waiver.
-    </p>
-
-    <label class="waiver-label">
-      <input type="checkbox" id="waiverAgree" required>
-      I have read and agree to the waiver above.
-    </label>
-
-    <label for="waiverFullName">Full Name (Digital Signature)</label>
-    <input type="text" id="waiverFullName" placeholder="Enter your full name" required>
-  </div>
-
-  <!-- ACTIONS -->
-  <button type="button" id="reviewBtn" onclick="reviewRegistration()">Review Registration</button>
-  <button type="button" id="submitBtn" class="hidden" onclick="confirmSubmit()">Submit Registration</button>
-
-  <!-- REVIEW PANEL -->
-  <div id="reviewPanel" class="hidden" aria-live="polite"></div>
+    <!-- REVIEW PANEL -->
+    <div id="reviewPanel" class="hidden" aria-live="polite"></div>
+  </form>
 </div>
 
 <script>
-const FORMSPREE_ENDPOINT = "https://formspree.io/f/mabcd123";
 /* ==========================
-   EVENTS DROPDOWN (relative API)
+   CONFIG
+   ========================== */
+const FORMSPREE_ENDPOINT = "https://formspree.io/f/YOUR_FORMSPREE_ID"; // <- replace with your real endpoint
+
+/* ==========================
+   EVENTS DROPDOWN (local JSON)
    ========================== */
 async function loadEvents() {
   const sel = document.getElementById("eventLocation");
-  const url = '/api/events';
-  sel.innerHTML = `<option value="">Loading...</option>`;
+  sel.innerHTML = `<option value="">Loading events...</option>`;
   try {
-    const res = await fetch(url, { method: 'GET' });
-    if (!res.ok) {
-      const text = await res.text().catch(() => "(no response text)");
-      throw new Error(`HTTP ${res.status} → ${text}`);
-    }
+    const res = await fetch("events.json", { cache: "no-store" });
+    if (!res.ok) throw new Error("Failed to load events");
     const events = await res.json();
+
     sel.innerHTML = `<option value="">Select...</option>`;
     (events || []).forEach(ev => {
       const opt = document.createElement("option");
-      opt.value = ev.EventID; // IMPORTANT: value = EventID (numeric)
+      opt.value = ev.EventID; // numeric-ish value
       const date = new Date(ev.EventDate).toLocaleDateString();
       opt.textContent = `${ev.Location} — ${date}`;
       sel.appendChild(opt);
@@ -356,11 +349,9 @@ async function loadEvents() {
       opt.textContent = "No events available";
       sel.appendChild(opt);
     }
-  } catch (e) {
-    console.error("Load events failed", e);
+  } catch (err) {
+    console.error("Events error", err);
     sel.innerHTML = `<option value="">Failed to load events</option>`;
-    // NOTE: We intentionally do NOT add fake options with string values,
-    // because the server requires a numeric EventID.
   }
 }
 document.addEventListener("DOMContentLoaded", loadEvents);
@@ -467,13 +458,13 @@ function addParticipant() {
       <option value="Stroller">Stroller</option>
     </select>
 
-   <label>Route</label>
-<select class="route">
-  <option value="">Select...</option>
-  <option value="Normal">Normal</option>
-  <option value="Challenge">Challenge</option>
-  <option value="Runners">Runners</option>
-</select>
+    <label>Route</label>
+    <select class="route">
+      <option value="">Select...</option>
+      <option value="Normal">Normal</option>
+      <option value="Challenge">Challenge</option>
+      <option value="Runners">Runners</option>
+    </select>
 
     <label>Shirt Size</label>
     <select class="shirt">
@@ -500,156 +491,6 @@ function addParticipant() {
   });
 }
 window.addParticipant = addParticipant;
-
-/* ==========================
-   SUBMIT (relative API)
-   ========================== */
-async function confirmSubmit() {
-  const regTypeEl = document.querySelector('input[name="regType"]:checked');
-  const regType = regTypeEl ? regTypeEl.value : "";
-  const eventID = Number(document.getElementById("eventLocation").value);
-
-  const participants = [...document.querySelectorAll(".participant-section")].map(p => ({
-    FirstName: p.querySelector(".fname").value.trim(),
-    LastName: p.querySelector(".lname").value.trim(),
-    BirthDate: p.querySelector(".bdate").value || null,
-    Email: p.querySelector(".email").value.trim() || null,   // optional
-    Phone: p.querySelector(".phone").value.trim() || null,
-    Gender: p.querySelector(".gender").value || null,
-    ParticipationType: p.querySelector(".participation").value || null,
-    Route: p.querySelector(".route").value,
-    ShirtSize: p.querySelector(".shirt").value,
-    IsChildSize: ["2/4","6/8","10/12","14/16"].includes(p.querySelector(".shirt").value)
-  }));
-
-  let group = null;
-  if (regType === "group") {
-    group = {
-      GroupName: document.getElementById("groupName").value.trim(),
-      CoordinatorName: document.getElementById("coordName").value.trim(),
-      GroupType: document.getElementById("groupType").value || null,
-      WorkGroupSize: document.getElementById("workSize")?.value || null
-    };
-  } else if (regType === "addMembers") {
-    group = { GroupID: Number(document.getElementById("existingGroupID").value) };
-  }
-
-  const payload = {
-    RegistrationType: regType,
-    EventID: eventID,
-    Group: group,
-    Participants: participants,
-
-
-    PaymentType: document.getElementById("paymentType").value,
-    DonationAmount: Number(document.getElementById("donation").value || 0),
-    WaiverAccepted: document.getElementById("waiverAgree").checked,
-    WaiverFullName: document.getElementById("waiverFullName").value.trim()
-};
-
-  console.log("Submitting payload:", payload);
-
-  try {
-    const res = await fetch('/api/registrations/submit', {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-
-    const raw = await res.text();
-    console.log("HTTP", res.status, "RAW:", raw);
-
-    let data = {};
-    try { data = raw ? JSON.parse(raw) : {}; } catch { data = { raw }; }
-
-    if (!res.ok) {
-      console.error("Submit failed", { status: res.status, data });
-      alert(`Error (${res.status}): ${data.error || data.raw || "Unknown error"}`);
-      return;
-    }
-
-    // Sanity log
-    console.log("Submit response (should include PaymentID):", data);
-
-    // Normalize casing (support both PascalCase and camelCase)
-    const paymentID =
-      data?.PaymentID ?? data?.paymentID ?? data?.paymentId ?? null;
-
-    const totalsObj =
-      data?.Totals ?? data?.totals ?? {};
-
-    const subtotal =
-      Number(totalsObj.Subtotal ?? totalsObj.subtotal ?? 0);
-
-    const donation =
-      Number(totalsObj.Donation ?? totalsObj.donation ?? 0);
-
-    const totalFromTotals =
-      totalsObj.Total ?? totalsObj.total;
-
-    const apiTotal = Number(
-      typeof totalFromTotals !== "undefined" ? totalFromTotals : (subtotal + donation)
-    );
-
-    const eventOption = document.getElementById("eventLocation").selectedOptions[0];
-    const eventLabel = eventOption ? eventOption.textContent : "—";
-
-    // Persist (still helpful on refresh)
-    localStorage.setItem("pumpitup:lastSubmit", JSON.stringify({
-      PaymentID: paymentID,
-      Total: apiTotal,
-      EventLabel: eventLabel,
-      ReceiptUrl: data?.ReceiptUrl ?? data?.receiptUrl ?? null,
-      ReceiptAbsoluteUrl: data?.ReceiptUrl ?? data?.receiptUrl ?? null
-    }));
-
-    // Tolerant redirect with pid
-    let pid = paymentID;
-    if (pid == null) {
-      console.error("No PaymentID in submit response:", data);
-      alert("We could not finalize your registration (no Payment ID from server). Please try again.");
-      return;
-    }
-
-    const pidNum = Number(pid);
-    if (!Number.isFinite(pidNum) || pidNum <= 0) {
-      console.warn("PaymentID is not a finite positive number, value:", pid, "typeof:", typeof pid);
-    }
-//------------------------------------------
-//  SEND A COPY OF THE SUBMISSION TO FORMSPREE
-//------------------------------------------
-try {
-  const fsEnvelope = {
-    form: "Pump It Up 2026 Registration",
-    timestamp: new Date().toISOString(),
-    paymentId: pid,
-    eventId: eventID,
-    eventLabel: eventLabel,
-    payload: payload   // this is your full registration object
-  };
-
-  const fd = new FormData();
-  fd.set("envelope", JSON.stringify(fsEnvelope));
-  fd.set("paymentId", String(pid));
-  fd.set("eventId", String(eventID));
-
-  fetch(FORMSPREE_ENDPOINT, {
-    method: "POST",
-    body: fd
-  }).catch(e => console.warn("Formspree copy failed:", e));
-
-} catch (e) {
-  console.warn("Formspree error:", e);
-}
-    console.log("Redirecting to thankyou with pid:", pid);
-    window.location.href = `thankyou.html?pid=${encodeURIComponent(pid)}`;
-
-  } catch (e) {
-    console.error("Network/Fetch error", e);
-    alert("Network error submitting registration.");
-  }
-}
-window.confirmSubmit = confirmSubmit;
 
 /* ==========================
    VALIDATION UTILS
@@ -716,13 +557,12 @@ function reviewRegistration() {
   }
 
   // 3. EXISTING GROUP ID IF ADDMEMBERS
-if (regType && regType.value === "addMembers") {
-  const existingGroupID = document.getElementById("existingGroupID");
-  if (!existingGroupID.value.trim()) {
-    addError(ul, "Group ID is required when adding members.", existingGroupID);
+  if (regType && regType.value === "addMembers") {
+    const existingGroupID = document.getElementById("existingGroupID");
+    if (!existingGroupID.value.trim()) {
+      addError(ul, "Group ID is required when adding members.", existingGroupID);
+    }
   }
-  // No current size checks; backend is authoritative
-}
 
   // 4. PARTICIPANTS
   const participantSections = document.querySelectorAll(".participant-section");
@@ -761,7 +601,7 @@ if (regType && regType.value === "addMembers") {
   const eventLocation = document.getElementById("eventLocation");
   const eventValNum = Number(eventLocation.value);
   if (!eventLocation.value || !Number.isFinite(eventValNum) || eventValNum <= 0) {
-    addError(ul, "Please select a valid event (try reloading if events failed to load).", eventLocation);
+    addError(ul, "Please select a valid event.", eventLocation);
   }
 
   const paymentType = document.getElementById("paymentType");
@@ -773,13 +613,12 @@ if (regType && regType.value === "addMembers") {
   if (!waiverAgree?.checked) addError(ul, "You must agree to the waiver.", waiverAgree);
   if (!waiverFullName?.value.trim()) addError(ul, "Full name (digital signature) is required.", waiverFullName);
 
-  // MIN GROUP SIZE checks
+  // MIN GROUP SIZE check
   if (regType && regType.value === "group") {
     if (participantSections.length < 3) {
       addError(ul, "Group registration requires at least 3 participants.", document.getElementById("addParticipantBtn"));
     }
   }
-
 
   // If errors, show summary and stop
   if (ul.childElementCount > 0) {
@@ -800,9 +639,9 @@ if (regType && regType.value === "addMembers") {
 }
 window.reviewRegistration = reviewRegistration;
 
-// ==========================
-// REVIEW PANEL builder
-// ==========================
+/* ==========================
+   REVIEW PANEL builder
+   ========================== */
 function buildReviewPanel() {
   const panel = document.getElementById("reviewPanel");
   const regType = document.querySelector('input[name="regType"]:checked')?.value || "";
@@ -831,15 +670,15 @@ function buildReviewPanel() {
         <div class="kv"><b>Work Group Size:</b> ${workSize}</div>
       </div>`;
   } else if (regType === "addMembers") {
-  const existingGroupID = document.getElementById("existingGroupID").value || "—";
-  groupBlock = `
-    <div class="review-block">
-      <div class="review-title">Existing Group</div>
-      <div class="kv"><b>Group ID:</b> ${existingGroupID}</div>
-    </div>`;
-}
+    const existingGroupID = document.getElementById("existingGroupID").value || "—";
+    groupBlock = `
+      <div class="review-block">
+        <div class="review-title">Existing Group</div>
+        <div class="kv"><b>Group ID:</b> ${existingGroupID}</div>
+      </div>`;
+  }
 
-  // Participants
+  // Participants (read current DOM)
   const participants = [...document.querySelectorAll(".participant-section")].map((p, i) => ({
     n: i + 1,
     fname: p.querySelector(".fname")?.value || "",
@@ -867,49 +706,39 @@ function buildReviewPanel() {
     </div>
   `).join("");
 
-// Fees (display only)
-const PRICING = {
-  individualRate: 25,
-  groupRate: 20,
-  groupThreshold: 3,          // still used for NEW group validation elsewhere
-  challengeSurcharge: 0,      // set > 0 if needed later
-  runnersSurcharge: 0         // set > 0 if needed later
-};
+  // Fees (display only)
+  const PRICING = {
+    individualRate: 25,
+    groupRate: 20,
+    groupThreshold: 3,
+    challengeSurcharge: 0,
+    runnersSurcharge: 0
+  };
 
-let per = PRICING.individualRate;
+  let per = PRICING.individualRate;
+  if (regType === "group" || regType === "addMembers") per = PRICING.groupRate;
 
-// Pricing rules:
-// - Individual: $25 per person
-// - Group (new or addMembers): $20 per person
-if (regType === "group" || regType === "addMembers") {
-  per = PRICING.groupRate;
-}
+  let subtotal = 0;
+  participants.forEach(p => {
+    let amt = per;
+    if (p.route === "Challenge") amt += PRICING.challengeSurcharge;
+    if (p.route === "Runners")   amt += PRICING.runnersSurcharge;
+    subtotal += amt;
+  });
 
-let subtotal = 0;
-participants.forEach(p => {
-  let amt = per;
+  const donationNum = Number(donation || 0) || 0;
+  const total = subtotal + donationNum;
 
-  // Optional surcharges by route (currently 0)
-  if (p.route === "Challenge") amt += PRICING.challengeSurcharge;
-  if (p.route === "Runners")   amt += PRICING.runnersSurcharge;
-
-  subtotal += amt;
-});
-
-const donationNum = Number(donation || 0) || 0;
-const total = subtotal + donationNum;
-
-const feesHTML = `
-  <div class="review-block">
-    <div class="review-title">Fees &amp; Total</div>
-    <div class="kv"><b>Subtotal:</b> $${subtotal.toFixed(2)}</div>
-    <div class="kv"><b>Donation:</b> $${donationNum.toFixed(2)}</div>
-    <div class="kv" style="font-size:1.05em;"><b>Total:</b> $${total.toFixed(2)}</div>
-  </div>`;
+  const feesHTML = `
+    <div class="review-block">
+      <div class="review-title">Fees &amp; Total</div>
+      <div class="kv"><b>Subtotal:</b> $${subtotal.toFixed(2)}</div>
+      <div class="kv"><b>Donation:</b> $${donationNum.toFixed(2)}</div>
+      <div class="kv" style="font-size:1.05em;"><b>Total:</b> $${total.toFixed(2)}</div>
+    </div>`;
 
   const panelHTML = `
     <h2>Review Your Registration</h2>
-
     <div class="review-block">
       <div class="review-title">Overview</div>
       <div class="kv"><b>Registration Type:</b> ${regType || "—"}</div>
@@ -917,20 +746,102 @@ const feesHTML = `
       <div class="kv"><b>Payment Type:</b> ${paymentType}</div>
       <div class="kv"><b>Donation:</b> $${donationNum.toFixed(2)}</div>
     </div>
-
     ${groupBlock}
-
     <div class="review-block">
       <div class="review-title">Participants (${participants.length})</div>
       ${participantsHTML || "<div class='kv'>No participants added.</div>"}
     </div>
-
     ${feesHTML}
-
     <p style="margin-top:10px;color:#555;">If everything looks good, click <b>Submit Registration</b> to finalize.</p>
   `;
 
   panel.innerHTML = panelHTML;
+}
+
+/* ==========================
+   SUBMIT — FORMSPREE ONLY
+   ========================== */
+async function confirmSubmit() {
+  // Build payload from the DOM so Formspree stores the full registration.
+  const regType = document.querySelector('input[name="regType"]:checked')?.value || "";
+  const eventSel = document.getElementById("eventLocation");
+  const eventID = Number(eventSel.value || 0);
+  const eventLabel = eventSel.selectedOptions[0]?.textContent ?? "—";
+
+  // Participants snapshot
+  const participants = [...document.querySelectorAll(".participant-section")].map(p => {
+    const shirtVal = p.querySelector(".shirt")?.value || "";
+    return {
+      FirstName: p.querySelector(".fname")?.value.trim() || "",
+      LastName:  p.querySelector(".lname")?.value.trim() || "",
+      BirthDate: p.querySelector(".bdate")?.value || null,
+      Email:     p.querySelector(".email")?.value.trim() || null,
+      Phone:     p.querySelector(".phone")?.value.trim() || null,
+      Gender:    p.querySelector(".gender")?.value || null,
+      ParticipationType: p.querySelector(".participation")?.value || null,
+      Route:     p.querySelector(".route")?.value || "",
+      ShirtSize: shirtVal,
+      IsChildSize: ["2/4","6/8","10/12","14/16"].includes(shirtVal)
+    };
+  });
+
+  let group = null;
+  if (regType === "group") {
+    group = {
+      GroupName: document.getElementById("groupName").value.trim(),
+      CoordinatorName: document.getElementById("coordName").value.trim(),
+      GroupType: document.getElementById("groupType").value || null,
+      WorkGroupSize: document.getElementById("workSize")?.value || null
+    };
+  } else if (regType === "addMembers") {
+    group = { GroupID: Number(document.getElementById("existingGroupID").value || 0) || null };
+  }
+
+  const payload = {
+    RegistrationType: regType,
+    EventID: eventID,
+    EventLabel: eventLabel,
+    Group: group,
+    Participants: participants,
+    PaymentType: document.getElementById("paymentType").value || "",
+    DonationAmount: Number(document.getElementById("donation").value || 0),
+    WaiverAccepted: document.getElementById("waiverAgree").checked,
+    WaiverFullName: document.getElementById("waiverFullName").value.trim(),
+    timestamp: new Date().toISOString()
+  };
+
+  // Build FormData for Formspree
+  const fd = new FormData();
+  fd.set("envelope", JSON.stringify(payload));
+  fd.set("registrationType", regType);
+  fd.set("eventId", String(eventID));
+  fd.set("eventLabel", eventLabel);
+
+  const submitBtn = document.getElementById("submitBtn");
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Submitting...";
+
+  try {
+    const res = await fetch(FORMSPREE_ENDPOINT, {
+      method: "POST",
+      body: fd,
+      headers: { "Accept": "application/json" }
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`Formspree error: ${res.status} → ${text}`);
+    }
+
+    // Success → simple redirect (no PaymentID in Formspree-only mode)
+    window.location.href = "thankyou.html";
+
+  } catch (err) {
+    console.error("Submit failed:", err);
+    alert("Submission failed. Please try again.");
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Submit Registration";
+  }
 }
 </script>
 </body>
