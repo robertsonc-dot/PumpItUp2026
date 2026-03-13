@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Confirm Payment</title>
+
+<style>
+  :root{
+    --primary-yellow:#dead26;
+    --primary-green:#8a8d09;
+    --accent-orange:#d87b32;
+    --light-bg:#f9f7f0;
+    --neutral-light:#dadad9;
+    --neutral-dark:#616333;
+    --error:#b00020;
+    --error-bg:#fdecec;
+    --ok-bg:#e7f6ea;
+    --ok-fg:#1f5f2f;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0; font-family:Arial,Helvetica,sans-serif; color:#333;
+    background:
+      linear-gradient(rgba(0,0,0,.35),rgba(0,0,0,.35)),
+      url("https://www.grenadaco-opbank.com/wp-content/uploads/2025/03/CTP-56-scaled.jpg")
+      center / cover no-repeat fixed;
+  }
+  .wrap{
+    background:rgba(249,247,240,.88);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    max-width:880px;margin:28px auto;padding:22px 22px 24px;
+    border-radius:12px;border:1px solid rgba(255,255,255,.4);
+    box-shadow:0 2px 10px rgba(0,0,0,.12);
+  }
+
+  /* Topbar (always visible) */
+  .topbar{
+    display:flex; justify-content:flex-end; gap:8px; margin-bottom:10px;
+  }
+  .btn{
+    background:var(--primary-green);color:white;border:0;
+    padding:10px 14px;border-radius:6px;font-size:15px;
+    font-weight:bold;cursor:pointer;
+  }
+  .btn:hover{ background:#556117; }
+  .btn.secondary{ background:#585858; }
+  .btn.secondary:hover{ background:#424242; }
+  .btn:disabled{ background:#cfcfcf !important; cursor:not-allowed; }
+
+  /* Header with logo */
+  .header{text-align:center; margin-top:4px;}
+  .logo{ margin:2px 0 6px; min-height:40px; }
+  .logo img{
+    max-width:260px; height:auto; display:inline-block;
+    position:relative; z-index:1;
+  }
+  h1{
+    margin:4px 0 4px; color:var(--primary-green); text-align:center;
+  }
+  .sub{
+    text-align:center; color:#4c4c4c; margin:0 0 12px; font-size:15px;
+  }
+
+  .status{
+    margin:10px 0; padding:10px 12px; border-radius:8px;
+    background:#fff; border:1px solid #ccc; font-weight:bold;
+  }
+  .status.err{ background:var(--error-bg); color:#7a0000; border-color:#d7a3a3; }
+  .status.ok { background:var(--ok-bg); color:var(--ok-fg); border-color:#bfe3c9; }
+
+  label{font-weight:bold;color:var(--neutral-dark); display:block; margin-bottom:6px;}
+  input,select{
+    width:100%;padding:10px;border:1px solid var(--neutral-light);
+    border-radius:6px;font-size:15px;background:#fff;
+  }
+  input::placeholder{ color:#aaa; }
+
+  .grid{
+    display:grid; grid-template-columns: 1fr 1fr; gap:14px 14px;
+  }
+  .grid .full{ grid-column: 1 / span 2; }
+
+  .summary{
+    background:#fff;border:1px solid var(--neutral-light);border-radius:8px;
+    padding:12px;margin-top:12px; line-height:1.5;
+  }
+  .actions{ margin-top:10px; display:flex; gap:10px; flex-wrap:wrap; }
+  .tip{ margin-top:10px; color:#666; font-size:13px; text-align:center; }
+
+  .topbar, .header { position:relative; z-index:2; }
+
+  .field-error{
+    border-color: var(--error) !important;
+    box-shadow: 0 0 0 3px rgba(176,0,32,.15);
+  }
+
+  .help{
+    margin-top:6px; font-size:12px; color:#555;
+  }
+
+  .toast{
+    position:fixed; bottom:18px; right:18px;
+    background:#333; color:#fff; padding:12px 14px;
+    border-radius:8px; box-shadow:0 6px 24px rgba(0,0,0,.2);
+    opacity:0; transform:translateY(10px); pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease;
+    z-index:9999; max-width:340px;
+  }
+  .toast.show{ opacity:1; transform:translateY(0); }
+  .toast.err{ background:#b00020; }
+  .toast.ok{ background:#1f5f2f; }
+
+  /* Small link button */
+  .link-btn{
+    color:#0c4da2; cursor:pointer; text-decoration:underline;
+  }
+
+  @media (max-width:700px){
+    .grid{ grid-template-columns: 1fr; }
+    .grid .full{ grid-column: auto; }
+    .topbar{ justify-content:center; }
+  }
+</style>
+</head>
+
+<body>
+  <div class="wrap">
+    <!-- Top-right button -->
+    <div class="topbar">
+      <button class="btn" type="button" id="dbBtn">Go to Database</button>
+    </div>
+
+    <!-- Header with logo and title -->
+    <div class="header">
+      <div class="logo">
+        <img id="brandLogo"
+             src="https://www.grenadabroadcast.com/files/wp-content/uploads/2018/04/pump-it-up-logo1-2.png"
+             alt="Pump It Up!">
+      </div>
+      <h1>Confirm Payment</h1>
+      <p class="sub">Enter the <b>Payment ID</b> shown on the customer’s invoice, then confirm payment.</p>
+    </div>
+
+    <div id="status" class="status">Start by entering a Payment ID and clicking Load Invoice.</div>
+
+    <!-- Form -->
+    <div class="grid">
+      <div>
+        <label for="paymentId">Payment ID</label>
+        <input id="paymentId" type="number" placeholder="e.g., 12345">
+      </div>
+      <div>
+        <label for="paymentType">Payment Type</label>
+        <select id="paymentType">
+          <option value="">Select…</option>
+          <option value="Cash">Cash</option>
+          <option value="Card">Card</option>
+          <option value="Cheque">Cheque</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="officerName">Officer Name</label>
+        <input id="officerName" placeholder="e.g., J. Thomas">
+      </div>
+
+      <!-- Staff Key: hidden by default, shown only if required -->
+      <div id="staffKeyGroup" style="display:none;">
+        <label id="staffKeyLabel" for="staffKey">Staff Key (required)</label>
+        <input id="staffKey" type="password" placeholder="Enter staff key">
+        <div id="staffKeyHelp" class="help" style="display:none;">Staff key is required to confirm this payment.</div>
+      </div>
+
+      <div class="full actions">
+        <button class="btn" id="loadBtn">Load Invoice</button>
+        <button class="btn" id="confirmBtn">Confirm Payment</button>
+        <button class="btn secondary" id="openReceiptBtn">Open Paid Receipt</button>
+      </div>
+    </div>
+
+    <!-- Invoice summary -->
+    <div id="summary" class="summary" style="display:none;"></div>
+
+    <!-- Outstanding members panel (only for group invoices) -->
+    <div id="outstandingPanel" class="summary" style="display:none;"></div>
+
+    <p class="tip">Tip: If you reached this page by scanning a QR on the invoice, the Payment ID may be prefilled.</p>
+  </div>
+
+  <!-- Toast container -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+
+  // Prefer same-origin; fallback for file:// during local testing
+  let API_BASE = location.origin;
+  if (location.protocol === 'file:' || location.origin === 'null') {
+    API_BASE = 'http://localhost:5268';
+  }
+
+  // Simple state
+  const state = {
+    invoice: null,        // last loaded /api/payments/{id}/summary
+    outstanding: null     // last loaded /api/groups/{gid}/outstanding
+  };
+
+  // Go to database
+  $('dbBtn').addEventListener('click', () => {
+    window.location.href = 'database.html';
+  });
+
+  // Logo fallback
+  const logo = $('brandLogo');
+  if (logo) {
+    logo.addEventListener('error', () => {
+      logo.src = '/assets/logo.png'; // optional local fallback
+    });
+  }
+
+  // Prefill Payment ID from ?pid=
+  const qs = new URLSearchParams(location.search);
+  const pid = qs.get('pid');
+  if (pid) $('paymentId').value = pid;
+
+  /* ===== Toast ===== */
+  let toastTimer = null;
+  function showToast(msg, kind = 'ok', timeout = 4200){
+    const t = $('toast');
+    if (!t) return;
+    t.className = 'toast ' + (kind === 'err' ? 'err' : 'ok');
+    t.textContent = msg;
+    t.classList.add('show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), timeout);
+  }
+
+  /* ===== UI helpers ===== */
+  function prettyStatus(st){
+    switch(st){
+      case 'PAID': return '🟢 PAID';
+      case 'UNPAID': return '🟡 UNPAID';
+      case 'EXPIRED': return '🔴 EXPIRED';
+      default: return st || '—';
+    }
+  }
+  function busy(on){
+    document.body.style.opacity = on ? '0.55' : '1';
+    document.body.style.pointerEvents = on ? 'none' : 'auto';
+  }
+  function setStatus(kind, msg){
+    const s = $('status');
+    s.classList.remove('err','ok');
+    if (kind === 'err') s.classList.add('err');
+    if (kind === 'ok')  s.classList.add('ok');
+    s.textContent = msg;
+    if (kind === 'err' || kind === 'ok') showToast(msg, kind);
+  }
+  function fmtMoney(n){
+    const v = Number(n || 0);
+    return '$' + v.toFixed(2);
+  }
+
+  // Staff Key block visibility
+  function ensureStaffKeyVisible(required){
+    const group = $('staffKeyGroup');
+    const label = $('staffKeyLabel');
+    const help = $('staffKeyHelp');
+    const input = $('staffKey');
+    if (!group || !input || !label) return;
+
+    if (required){
+      group.style.display = 'block';
+      label.textContent = 'Staff Key (required)';
+      if (help) help.style.display = 'block';
+      input.setAttribute('aria-required', 'true');
+      input.placeholder = 'Enter staff key';
+    }else{
+      group.style.display = 'none';
+      if (help) help.style.display = 'none';
+      input.value = '';
+      input.classList.remove('field-error');
+      input.removeAttribute('aria-required');
+    }
+  }
+
+  // Remove error highlight when typing a key
+  const staffInput = $('staffKey');
+  if (staffInput){
+    staffInput.addEventListener('input', () => {
+      staffInput.classList.remove('field-error');
+    });
+  }
+
+  /* ===== Load Invoice ===== */
+  async function loadInvoice(){
+    const id = Number($('paymentId').value);
+    if (!Number.isFinite(id) || id <= 0) return setStatus('err','Please enter a valid numeric Payment ID.');
+
+    busy(true);
+    try{
+      const res = await fetch(`${API_BASE}/api/payments/${id}/summary`);
+      const raw = await res.text();
+      let data = {};
+      try { data = raw ? JSON.parse(raw) : {}; } catch { data = { raw }; }
+
+      if (!res.ok) {
+        $('summary').style.display = 'none';
+        $('outstandingPanel').style.display = 'none';
+        setStatus('err', `Could not load invoice (HTTP ${res.status}). ${data?.error || ''}`);
+        ensureStaffKeyVisible(false);
+        return;
+      }
+
+      state.invoice = data;
+      renderInvoiceSummary(data);
+
+      // Enable/disable confirm
+      $('confirmBtn').disabled = (data?.PaymentStatus === 'PAID' || data?.PaymentStatus === 'EXPIRED');
+      if (data?.PaymentStatus === 'PAID') {
+        setStatus('ok','This invoice is already PAID.');
+      } else if (data?.PaymentStatus === 'EXPIRED') {
+        setStatus('err','This invoice is EXPIRED and cannot be paid.');
+      } else {
+        setStatus('ok','Invoice loaded. Ready to confirm.');
+      }
+
+      // Reveal staff key field only if API says it’s needed
+      if (data?.RequiresStaffKey === true){
+        ensureStaffKeyVisible(true);
+      }else{
+        ensureStaffKeyVisible(false);
+      }
+
+      // SECONDARY CALL: if it's a group invoice, fetch outstanding members
+      if (data?.Scope === 'Group' && data?.GroupID){
+        await loadOutstandingForGroup(data.GroupID, data);
+      } else {
+        // Hide the panel if not a group invoice
+        const op = $('outstandingPanel');
+        if (op){ op.style.display = 'none'; op.innerHTML = ''; }
+      }
+
+    }catch(e){
+      console.error(e);
+      setStatus('err','Network error loading invoice.');
+      ensureStaffKeyVisible(false);
+      $('summary').style.display = 'none';
+      $('outstandingPanel').style.display = 'none';
+    }finally{
+      busy(false);
+    }
+  }
+
+  function renderInvoiceSummary(data){
+    const el = $('summary');
+    if (!el) return;
+
+    const tot = data?.Totals ?? {};
+    const lines = [];
+
+    // Header block
+    lines.push(`<b>Status:</b> ${prettyStatus(data?.PaymentStatus)}`);
+    lines.push(`<b>Event:</b> ${data?.Event?.Name ?? '—'} — ${data?.Event?.EventDate ? new Date(data.Event.EventDate).toLocaleDateString() : '—'}`);
+    lines.push(`<b>Location:</b> ${data?.Event?.Location ?? '—'}`);
+    lines.push(`<b>Due:</b> ${data?.DueAt ? new Date(data.DueAt).toLocaleString() : '—'}`);
+    lines.push('');
+
+    // Coverage wording (separate roster vs charges)
+    // We can only show counts if API objects are present; otherwise show explanatory text.
+    if (data?.Scope === 'Group') {
+      // If the summary includes which registrations this invoice owns
+      const coveredCount = Array.isArray(data?.CoversRegistrationIDs) ? data.CoversRegistrationIDs.length : null;
+      lines.push(`<b>Invoice scope:</b> Group`);
+      if (coveredCount !== null) {
+        lines.push(`<b>This invoice covers:</b> ${coveredCount} member(s)`);
+      } else {
+        lines.push(`<b>This invoice covers:</b> the members assigned to this invoice`);
+      }
+      lines.push(`<span style="color:#666;font-size:13px;">Note: Group roster may be larger than the members billed on this invoice. See the "Outstanding members" panel below for individually billed members, if any.</span>`);
+      lines.push('');
+    } else {
+      lines.push(`<b>Invoice scope:</b> Individual`);
+      lines.push('');
+    }
+
+    // Totals
+    lines.push(`<b>Subtotal:</b> ${fmtMoney(tot?.Subtotal)}`);
+    lines.push(`<b>Donation:</b> ${fmtMoney(tot?.Donation)}`);
+    lines.push(`<b>Total:</b> ${fmtMoney(tot?.Total)}`);
+    lines.push('');
+
+    // Receipt link (if paid or present)
+    lines.push(`<b>Receipt Link:</b> ${data?.ReceiptUrl ? `<a href="${data.ReceiptUrl}" target="_blank" rel="noopener">${data.ReceiptUrl}</a>` : '—'}`);
+
+    el.innerHTML = lines.join('<br/>');
+    el.style.display = 'block';
+  }
+
+  /* ===== Secondary call: /api/groups/{groupId}/outstanding ===== */
+  async function loadOutstandingForGroup(groupId, invoiceData){
+    const panel = $('outstandingPanel');
+    if (!panel) return;
+
+    panel.style.display = 'block';
+    panel.innerHTML = 'Loading outstanding members for this group…';
+
+    try{
+      const res = await fetch(`${API_BASE}/api/groups/${groupId}/outstanding`);
+      const raw = await res.text();
+      let o = {};
+      try { o = raw ? JSON.parse(raw) : {}; } catch { o = { raw }; }
+
+      if (!res.ok){
+        panel.innerHTML = `<b>Outstanding members</b><br/>Unable to load (HTTP ${res.status}).`;
+        return;
+      }
+
+      state.outstanding = o;
+      renderOutstanding(panel, o, invoiceData);
+    }catch(e){
+      console.error(e);
+      panel.innerHTML = `<b>Outstanding members</b><br/>Network error while loading outstanding members.`;
+    }
+  }
+
+  function renderOutstanding(panel, o, invoiceData){
+    const rosterCount = Number.isFinite(o?.groupRosterCount) ? Number(o.groupRosterCount) : null;
+    const unpaid = Array.isArray(o?.individualUnpaidMembers) ? o.individualUnpaidMembers : [];
+    const paidInd = Array.isArray(o?.individualPaidMembers) ? o.individualPaidMembers : [];
+
+    const lines = [];
+    lines.push(`<b>Outstanding members (billed separately)</b>`);
+
+    // Roster count if available
+    if (rosterCount !== null){
+      lines.push(`<span>Participants (Roster): <b>${rosterCount}</b></span>`);
+    }
+
+    // Covered-by-this-invoice count if the invoice gives us that array
+    const coveredCount = Array.isArray(invoiceData?.CoversRegistrationIDs) ? invoiceData.CoversRegistrationIDs.length : null;
+    if (coveredCount !== null){
+      lines.push(`<span>This invoice covers: <b>${coveredCount}</b> member(s)</span>`);
+    }
+
+    // Unpaid individual members
+    if (unpaid.length){
+      lines.push('<div style="margin-top:8px;"></div>');
+      lines.push(`<div><b>Unpaid (individual invoices): ${unpaid.length}</b></div>`);
+      lines.push('<ul style="margin:6px 0 0 18px;">');
+      unpaid.forEach(m => {
+        const name = m?.Name || m?.FullName || `Reg #${m?.RegistrationID ?? '—'}`;
+        const pmtId = m?.PaymentID ?? '—';
+        const amt = fmtMoney(m?.Amount);
+        const st  = m?.Status || 'UNPAID';
+        lines.push(`<li>${name} — Payment #${pmtId} — <b>${st}</b> — ${amt}
+          &nbsp; <span class="link-btn" onclick="openConfirmFor(${Number(pmtId)})">Open</span>
+          ${m?.ReceiptUrl ? `&nbsp; <a class="link-btn" href="${m.ReceiptUrl}" target="_blank" rel="noopener">Receipt</a>` : ''}
+        </li>`);
+      });
+      lines.push('</ul>');
+    } else {
+      lines.push('<div style="margin-top:8px;color:#2f6f3f;"><b>No outstanding individually billed members.</b></div>');
+    }
+
+    // Optionally show individually paid members (informational)
+    if (paidInd.length){
+      lines.push('<div style="margin-top:10px;"></div>');
+      lines.push(`<div><b>Paid individually: ${paidInd.length}</b></div>`);
+      lines.push('<ul style="margin:6px 0 0 18px;">');
+      paidInd.forEach(m => {
+        const name = m?.Name || m?.FullName || `Reg #${m?.RegistrationID ?? '—'}`;
+        const pmtId = m?.PaymentID ?? '—';
+        lines.push(`<li>${name} — Payment #${pmtId} — <b>PAID</b>
+          ${m?.ReceiptUrl ? `&nbsp; <a class="link-btn" href="${m.ReceiptUrl}" target="_blank" rel="noopener">Receipt</a>` : ''}</li>`);
+      });
+      lines.push('</ul>');
+    }
+
+    panel.innerHTML = lines.join('<br/>');
+    panel.style.display = 'block';
+  }
+
+  // Helper: open this confirm page with a different Payment ID (for quick switching)
+  window.openConfirmFor = function(paymentId){
+    if (!paymentId) return;
+    // Navigate to same page with pid param so desk officer can confirm that individual invoice quickly
+    const url = new URL(location.href);
+    url.searchParams.set('pid', String(paymentId));
+    location.href = url.toString();
+  };
+
+  /* ===== Confirm paid ===== */
+  async function confirmPaid(){
+    const id = Number($('paymentId').value);
+    const officer = $('officerName').value.trim().replace(/\s+/g,' ');
+    const ptype = $('paymentType').value;
+    const skey = ($('staffKey')?.value ?? '').trim();
+
+    if (!Number.isFinite(id) || id <= 0) return setStatus('err','Enter a valid Payment ID.');
+    if (!ptype) return setStatus('err','Select a payment type.');
+    if (!officer) return setStatus('err','Enter the officer name.');
+
+    busy(true);
+    try{
+      const res = await fetch(`${API_BASE}/api/payments/${id}/mark-paid`,{
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({
+          ReceivedBy: officer,
+          PaymentType: ptype,
+          StaffKey: skey || null
+        })
+      });
+      const raw = await res.text();
+      let data = {};
+      try { data = raw ? JSON.parse(raw) : {}; } catch { data = { raw }; }
+
+      if (!res.ok){
+        if (res.status === 401 && !skey) {
+          ensureStaffKeyVisible(true);
+          const input = $('staffKey');
+          if (input){
+            input.classList.add('field-error');
+            input.focus();
+          }
+          setStatus('err', 'Please enter the staff key.');
+          return;
+        }
+        if (res.status === 401 && skey){
+          ensureStaffKeyVisible(true);
+          const input = $('staffKey');
+          if (input){
+            input.classList.add('field-error');
+            input.focus();
+          }
+          setStatus('err', data?.error || 'Invalid staff key.');
+          return;
+        }
+        setStatus('err', `Error (${res.status}): ${data?.error || data?.raw || 'Unknown error'}`);
+        return;
+      }
+
+      setStatus('ok','Payment marked as PAID. Opening receipt…');
+      $('confirmBtn').disabled = true;
+      window.open(`${API_BASE}/api/payments/${id}/receipt`, '_blank', 'noopener');
+
+      // Reload invoice summary (and outstanding) so the page reflects the change
+      await loadInvoice();
+
+    }catch(e){
+      console.error(e);
+      setStatus('err','Network error confirming payment.');
+    }finally{
+      busy(false);
+    }
+  }
+
+  function openReceipt(){
+    const id = Number($('paymentId').value);
+    if (!Number.isFinite(id) || id <= 0) return setStatus('err','Enter a valid Payment ID.');
+    window.open(`${API_BASE}/api/payments/${id}/receipt`, '_blank', 'noopener');
+  }
+
+  // Bind events
+  $('loadBtn').addEventListener('click', loadInvoice);
+  $('confirmBtn').addEventListener('click', confirmPaid);
+  $('openReceiptBtn').addEventListener('click', openReceipt);
+
+  // Auto load if pid present
+  if (pid) loadInvoice();
+})();
+</script>
+</body>
+</html>

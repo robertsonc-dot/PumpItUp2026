@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Registration Confirmed</title>
+
+<style>
+  :root {
+    --primary-yellow: #dead26;
+    --primary-green: #8a8d09;
+    --accent-orange: #d87b32;
+    --glass-bg: rgba(249,247,240,0.90);
+    --ink: #333;
+  }
+
+  /* ===== BACKGROUND ===== */
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    color: var(--ink);
+    background:
+      linear-gradient(rgba(0,0,0,.25), rgba(0,0,0,.25)),
+      url("https://www.grenadaco-opbank.com/wp-content/uploads/2025/03/CTP-56-scaled.jpg")
+      center / cover no-repeat fixed;
+  }
+
+  /* ===== MAIN CARD ===== */
+  .wrap {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    max-width: 780px;
+    margin: clamp(24px, 6vh, 48px) auto;
+    padding: clamp(20px, 3vw, 32px);
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,.35);
+    box-shadow: 0 6px 30px rgba(0,0,0,.18);
+  }
+
+  /* ===== LOGO ===== */
+  .logo { text-align:center; margin-bottom: 6px; }
+  .logo img { max-width: 220px; height: auto; }
+
+  /* ===== HEADING ===== */
+  h1 { text-align:center; margin: 10px 0 8px; }
+  p.lead { text-align:center; color:#444; margin: 0 0 14px; }
+
+  /* ===== ANIMATED CHECKMARK ===== */
+  .checkmark-wrapper { display:flex; justify-content:center; margin: 8px 0 10px; }
+  .checkmark {
+    width: 86px; height: 86px; border-radius: 50%; stroke-width: 6; stroke: #2e6f40;
+    box-shadow: inset 0px 0px 0px #2e6f40;
+    animation: fill .45s ease-in-out .45s forwards, scale .35s ease-in-out 1s both;
+  }
+  .checkmark__circle {
+    stroke-dasharray: 166;
+    stroke-dashoffset: 166;
+    animation: stroke .6s cubic-bezier(.65,0,.45,1) forwards;
+  }
+  .checkmark__check {
+    stroke-dasharray: 48;
+    stroke-dashoffset: 48;
+    animation: stroke .4s cubic-bezier(.65,0,.45,1) .6s forwards;
+  }
+  @keyframes stroke { 100% { stroke-dashoffset: 0; } }
+  @keyframes scale { 50% { transform: scale3d(1.06,1.06,1); } }
+  @keyframes fill { 100% { box-shadow: inset 0px 0px 0px 60px #fff; } }
+
+  /* ===== CTA BUTTONS ===== */
+  .cta {
+    display:flex; justify-content:center; gap:12px; flex-wrap:wrap; margin-top: 16px;
+  }
+  .btn {
+    appearance:none; border:0; border-radius:8px; padding:12px 18px;
+    font-weight:bold; cursor:pointer; text-decoration:none;
+    color: #fff; background: var(--primary-green);
+    display:inline-flex; align-items:center; gap:8px;
+    transition: filter .15s ease, transform .05s ease;
+  }
+  .btn:hover { background:#616333; }
+  .btn:active { transform: translateY(1px); }
+  /* Only the PDF button starts disabled; Register is always enabled */
+  .btn[aria-disabled="true"] { opacity:.6; pointer-events:none; }
+  .btn.secondary { background:#6b6b6b; }
+  .btn.secondary:hover { background:#555; }
+
+  .note { text-align:center; color:#555; font-size:14px; margin-top: 12px; }
+</style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="logo">
+      <img src="https://www.grenadabroadcast.com/files/wp-content/uploads/2018/04/pump-it-up-logo1-2.png" alt="Pump It Up">
+    </div>
+
+    <!-- Animated check (green "arrow" tick) -->
+    <div class="checkmark-wrapper" aria-hidden="true">
+      <svg class="checkmark" viewBox="0 0 52 52">
+        <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none"/>
+        <path class="checkmark__check" fill="none" d="M14 27l7 7 16-16"/>
+      </svg>
+    </div>
+
+    <h1>Registration Successful!</h1>
+    <p class="lead">Your PDF <strong>invoice</strong> is ready below.</p>
+
+    <div class="cta">
+      <!-- PDF invoice button: starts disabled, enabled by script -->
+      <a id="pdfLink" class="btn" href="#" target="_blank" rel="noopener" aria-disabled="true">
+        Open / Save PDF Invoice
+      </a>
+
+      <!-- Register button: always enabled (not greyed out) -->
+      <a class="btn secondary" href="pumpitup.html">
+        Register Another Person
+      </a>
+    </div>
+
+    <p class="note">If the PDF doesn’t open, your browser may be blocking pop‑ups.</p>
+  </div>
+
+  <script>
+  (async () => {
+    const qs = new URLSearchParams(location.search);
+    const pid = qs.get("pid");
+
+    if (!pid) {
+      alert("Your registration was submitted, but your invoice could not be loaded. Please try again.");
+      return;
+    }
+
+    // Try to fetch summary (mainly to pick any absolute URL); fall back to /receipt
+    try {
+      const res = await fetch(`/api/payments/${encodeURIComponent(pid)}/summary`);
+      const link = document.getElementById("pdfLink");
+      let url = `/api/payments/${encodeURIComponent(pid)}/receipt`;
+
+      if (res.ok) {
+        const s = await res.json();
+        if (s?.ReceiptUrl) url = s.ReceiptUrl;
+      }
+      link.href = url;
+      link.setAttribute("aria-disabled", "false"); // enable the button
+    } catch (err) {
+      console.error("Error loading invoice summary:", err);
+      const link = document.getElementById("pdfLink");
+      link.href = `/api/payments/${encodeURIComponent(pid)}/receipt`;
+      link.setAttribute("aria-disabled", "false"); // enable anyway with fallback
+    }
+  })();
+  </script>
+</body>
+</html>

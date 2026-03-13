@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Internal Data Viewer</title>
+
+<style>
+  :root{
+    --primary-yellow:#dead26;
+    --primary-green:#8a8d09;
+    --accent-orange:#d87b32;
+    --light-bg:#f9f7f0;
+    --neutral-light:#dadad9;
+    --neutral-dark:#616333;
+    --error:#b00020;
+    --error-bg:#fdecec;
+    --ok-bg:#e7f6ea;
+    --ok-fg:#1f5f2f;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    font-family: Arial, sans-serif; margin:0; color:#333;
+    background:
+      linear-gradient(rgba(0,0,0,.25), rgba(0,0,0,.25)),
+      url("https://www.grenadaco-opbank.com/wp-content/uploads/2025/03/CTP-56-scaled.jpg")
+      center / cover no-repeat fixed;
+  }
+  .wrap{
+    background: rgba(249,247,240,.85);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    max-width: 1200px; margin: 28px auto; padding: 20px 22px 28px;
+    border: 1px solid rgba(255,255,255,.35); border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+  }
+  h1{ color:var(--primary-green); margin: 6px 0 10px; }
+
+  button{
+    background:var(--primary-green); color:#fff; border:0;
+    border-radius:6px; padding:10px 14px; cursor:pointer;
+    font-weight:bold; font-size:14px;
+  }
+  button.secondary{ background:#6b6b6b; }
+  button:hover{ background:var(--neutral-dark); }
+  button:disabled{ opacity:.7; cursor:not-allowed; }
+
+  .tabs{ display:flex; gap:8px; margin: 14px 0 12px; }
+  .tab-btn{ background:#e7e7e7; color:#333; }
+  .tab-btn.active{ background:var(--primary-yellow); color:#222; }
+
+  .toolbar{
+    display:flex; gap:12px; flex-wrap:wrap; align-items:end;
+    margin-bottom: 12px;
+  }
+
+  label{ display:block; font-weight:bold; color:var(--neutral-dark); }
+  input, select{
+    padding:8px; border:1px solid var(--neutral-light);
+    border-radius:6px; background:#fff; font-size:14px;
+  }
+
+  .status{
+    border:1px solid #d0d0d0; background:#fff; padding:10px;
+    border-radius:8px; margin-bottom: 12px; font-size:15px;
+  }
+  .err{ background:var(--error-bg); border-color:#f0b0b0; color:#740000; }
+
+  .table-wrap{
+    overflow:auto; background:#fff; border:1px solid var(--neutral-light);
+    border-radius:8px; max-height: 60vh;
+  }
+  table{
+    border-collapse: collapse; width:100%; min-width: 900px;
+  }
+  th, td{
+    border-bottom: 1px solid #eee; padding: 8px; text-align:left; font-size:14px;
+  }
+  th{ background:#fafafa; position:sticky; top:0; z-index:2; }
+
+  tbody tr:hover{ background:#fffcee; }
+
+  .link-btn{
+    color:#0c4da2; cursor:pointer; text-decoration:underline;
+  }
+
+  /* Status pills */
+  .pill{
+    display:inline-block; padding:2px 8px; border-radius:999px;
+    font-weight:bold; font-size:12px;
+  }
+  .pill.PAID{ background:#e7f6ea; color:#1f5f2f; }
+  .pill.UNPAID{ background:#fff7d6; color:#6a4d00; }
+  .pill.EXPIRED{ background:#fdecec; color:#7a0000; }
+  .pill.PENDING{ background:#e8f0fe; color:#1a3c8a; }
+  .pill.CONFIRMED{ background:#e7f6ea; color:#1f5f2f; }
+
+  /* Field error + shake */
+  .field-error{
+    border-color:var(--error) !important;
+    box-shadow:0 0 0 3px rgba(176,0,32,.15);
+  }
+  @keyframes shake {
+    10%, 90% { transform: translateX(-2px); }
+    20%, 80% { transform: translateX(4px); }
+    30%, 50%, 70% { transform: translateX(-8px); }
+    40%, 60% { transform: translateX(8px); }
+  }
+  .shake{ animation:shake .4s ease; }
+
+  /* Toast */
+  .toast{
+    position:fixed; bottom:18px; right:18px;
+    background:#333; color:#fff; padding:12px 14px;
+    border-radius:8px; box-shadow: 0 6px 24px rgba(0,0,0,.25);
+    opacity:0; transform:translateY(10px); pointer-events:none;
+    transition:opacity .25s, transform .25s;
+    z-index:9999; max-width:360px;
+  }
+  .toast.show{ opacity:1; transform:translateY(0); }
+  .toast.err{ background:#b00020; }
+  .toast.ok{ background:#1f5f2f; }
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+  <h1>Internal Data Viewer</h1>
+
+  <!-- Fixed, working nav button (has an id and JS binding) -->
+  <div style="text-align:right; margin-bottom:12px;">
+    <button id="goConfirmBtn" type="button">Go to Confirm Payment Page</button>
+  </div>
+
+  <div id="status" class="status" aria-live="polite">
+    Enter your staff read key, choose a tab, and search.
+  </div>
+
+  <!-- Filters -->
+  <div class="toolbar">
+    <div style="position:relative; min-width:250px;">
+      <label for="readKey">Staff Read Key</label>
+      <input id="readKey" type="password" placeholder="Required">
+      <button id="toggleKey" class="secondary" type="button"
+        style="position:absolute; right:-2px; top:26px; padding:6px 10px;">
+        Show
+      </button>
+    </div>
+
+    <div>
+      <label for="eventSel">Event</label>
+      <select id="eventSel"><option value="">All</option></select>
+    </div>
+
+    <div>
+      <label for="statusSel">Status</label>
+      <select id="statusSel">
+        <option value="">All</option>
+        <option value="PENDING">PENDING</option>
+        <option value="CONFIRMED">CONFIRMED</option>
+        <option value="EXPIRED">EXPIRED</option>
+        <option value="UNPAID">UNPAID</option>
+        <option value="PAID">PAID</option>
+      </select>
+    </div>
+
+    <div style="min-width:250px;">
+      <label for="q">Search</label>
+      <input id="q" type="text" placeholder="Name, email, phone, ID…">
+    </div>
+
+    <!-- Payments-only filters (backend may ignore on other tabs) -->
+    <div>
+      <label for="paidFrom">Paid From</label>
+      <input id="paidFrom" type="date" placeholder="YYYY-MM-DD">
+    </div>
+
+    <div>
+      <label for="paidTo">Paid To</label>
+      <input id="paidTo" type="date" placeholder="YYYY-MM-DD">
+    </div>
+
+    <div style="min-width:220px;">
+      <label for="officer">Officer</label>
+      <input id="officer" list="officerList" type="text" placeholder="Name or username">
+      <datalist id="officerList"></datalist>
+    </div>
+
+    <div>
+      <label>&nbsp;</label>
+      <button id="searchBtn">Search</button>
+      <button id="clearFiltersBtn" class="secondary" type="button">Clear</button>
+      <button id="exportBtn" class="secondary">Export CSV</button>
+    </div>
+
+    <!-- Export mode selector -->
+    <div>
+      <label for="exportModeSel">Export</label>
+      <select id="exportModeSel" title="Choose what to export">
+        <option value="page" selected>Current page</option>
+        <option value="all">All results</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Rows per page toolbar -->
+  <div class="toolbar">
+    <div>
+      <label for="pageSizeSel">Rows per page</label>
+      <select id="pageSizeSel">
+        <option value="10">10</option>
+        <option value="25" selected>25</option>
+        <option value="50">50</option>
+        <option value="100">100</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="registrations">Registrations</button>
+    <button class="tab-btn" data-tab="payments">Payments</button>
+    <button class="tab-btn" data-tab="groups">Groups</button>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table id="grid">
+      <caption id="gridCaption" style="text-align:left; padding:8px; font-weight:bold;">
+        Registrations
+      </caption>
+      <thead></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="toolbar" style="justify-content:space-between;">
+    <div id="pageInfo">Page 1</div>
+    <div>
+      <button id="prevBtn" class="secondary">Prev</button>
+      <button id="nextBtn">Next</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+
+  /* ========= TOAST ========= */
+  let toastTimer;
+  function toast(msg, kind='ok'){
+    const t = $('toast');
+    if (!t) return;
+    t.className = 'toast ' + (kind === 'err' ? 'err':'ok');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=> t.classList.remove('show'), 4200);
+  }
+
+  /* ========= STATUS ========= */
+  function setStatus(msg, err=false){
+    const s = $('status');
+    if (s){
+      s.textContent = msg;
+      err ? s.classList.add('err') : s.classList.remove('err');
+    }
+    if (err) toast(msg, 'err');
+  }
+
+  /* ========= API BASE ========= */
+  let API_BASE = location.origin;
+  if (location.protocol==='file:' || location.origin==='null')
+    API_BASE = 'http://localhost:5268';
+
+  /* ========= STATE ========= */
+  const state = {
+    tab:'registrations',
+    page:1,
+    pageSize:25,
+    rows:[],
+    total:0,
+    exportMode:'page'   // 'page' | 'all'
+  };
+
+  // Load saved page size if present
+  const savedSize = parseInt(localStorage.getItem('idv.pageSize') || '', 10);
+  if (!Number.isNaN(savedSize)) state.pageSize = savedSize;
+
+  // Sync the dropdown UI with state on startup
+  const psel = document.getElementById('pageSizeSel');
+  if (psel) psel.value = String(state.pageSize);
+
+  // When user changes page size, save and re-run search from page 1
+  if (psel) {
+    psel.addEventListener('change', () => {
+      const newSize = parseInt(psel.value, 10);
+      if (!Number.isNaN(newSize) && newSize > 0) {
+        state.pageSize = newSize;
+        localStorage.setItem('idv.pageSize', String(newSize));
+        state.page = 1;
+        search();
+      }
+    });
+  }
+
+  // Export mode selector binding (+remember)
+  const exportModeSel = $('exportModeSel');
+  const savedMode = localStorage.getItem('idv.exportMode');
+  if (savedMode === 'page' || savedMode === 'all') state.exportMode = savedMode;
+  if (exportModeSel){
+    exportModeSel.value = state.exportMode;
+    exportModeSel.addEventListener('change', ()=>{
+      state.exportMode = exportModeSel.value; // 'page' | 'all'
+      localStorage.setItem('idv.exportMode', state.exportMode);
+    });
+  }
+
+  /* ========= SAFE BIND HELPERS ========= */
+  function on(id, evt, fn){
+    const el = $(id);
+    if (el) el.addEventListener(evt, fn);
+  }
+
+  /* ========= NAV BUTTON ========= */
+  on('goConfirmBtn','click', () => {
+    window.location.href = 'confirm.html';
+  });
+
+
+/* ========= QUICK CHANGE → SEARCH (dates, officer, event, status) ========= */
+// For payments-only filters: if user changes a date or officer and Status is empty, set it to PAID
+['paidFrom','paidTo','officer'].forEach(id=>{
+  const el = $(id);
+  if (!el) return;
+  el.addEventListener('change', ()=>{
+    const stSel = $('statusSel');
+    if (stSel && !stSel.value) {
+      stSel.value = 'PAID';  // Default to PAID when date/officer filters are used
+    }
+    state.page = 1;
+    search();
+  });
+});
+
+// For generic filters we still re-search on change (no auto-status behavior)
+['eventSel','statusSel'].forEach(id=>{
+  const el = $(id);
+  if (!el) return;
+  el.addEventListener('change', ()=>{
+    state.page = 1;
+    search();
+  });
+});
+
+
+  /* ========= READ KEY TOGGLE ========= */
+  on('toggleKey','click', ()=>{
+    const rk = $('readKey');
+    if (!rk) return;
+    rk.type = rk.type === 'password' ? 'text':'password';
+    const tk = $('toggleKey'); if (tk) tk.textContent = rk.type === 'password' ? 'Show':'Hide';
+  });
+
+  /* ========= EVENT LOADER ========= */
+  async function loadEvents(){
+    try{
+      const res = await fetch(`${API_BASE}/api/events`);
+      const ev = await res.json();
+      const sel = $('eventSel');
+      if (!sel) return;
+      sel.innerHTML = '<option value="">All</option>';
+      (ev || []).forEach(e=>{
+        const opt = document.createElement('option');
+        opt.value=e.EventID;
+        const dt = e.EventDate ? new Date(e.EventDate).toLocaleDateString() : '';
+        opt.textContent = `${e.Location} — ${dt}`;
+        sel.appendChild(opt);
+      });
+    }catch{
+      console.warn('Event load failed');
+    }
+  }
+  loadEvents();
+
+  /* ========= BUILD QUERY ========= */
+  function qs(){
+    const p = new URLSearchParams();
+    const ev = $('eventSel')?.value || '';
+    const st = $('statusSel')?.value || '';
+    const q = $('q')?.value.trim() || '';
+
+    const paidFrom = $('paidFrom')?.value || '';
+    const paidTo   = $('paidTo')?.value || '';
+    const officer  = $('officer')?.value.trim() || '';
+
+    if (ev) p.set('eventId',ev);
+    if (st) p.set('status',st);
+    if (q)  p.set('q',q);
+
+    // Payments filters (others may ignore)
+    if (paidFrom) p.set('paidFrom', paidFrom);   // YYYY-MM-DD
+    if (paidTo)   p.set('paidTo', paidTo);       // YYYY-MM-DD
+    if (officer)  p.set('officer', officer);     // free text / name
+
+    return p;
+  }
+
+  function tabPath(){
+    return state.tab==='registrations'?'/api/admin/registrations':
+           state.tab==='payments'?'/api/admin/payments':
+           '/api/admin/groups';
+  }
+
+  function pageUrl(){
+    const p = qs();
+    p.set('page',state.page);
+    p.set('pageSize',state.pageSize);
+    return `${API_BASE}${tabPath()}?${p}`;
+  }
+
+  /* ========= RENDER TABLE ========= */
+  /* ========= Fixed zone for Grenada ========= */
+const TZ_GRENADA = 'America/Grenada';
+const fmt = v => {
+  if (!v) return '—';
+  const d = new Date(v);
+
+  return d.toLocaleString('en-GB', {
+    timeZone: TZ_GRENADA,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  }) + ' AST';
+};
+
+  function render(){
+    const thead = $('grid')?.querySelector('thead');
+    const tbody = $('grid')?.querySelector('tbody');
+    const cap = $('gridCaption');
+    if (!thead || !tbody) return;
+
+    tbody.innerHTML='';
+    if (cap) cap.textContent = state.tab.charAt(0).toUpperCase()+state.tab.slice(1);
+
+    if (state.tab==='registrations'){
+      thead.innerHTML = `
+        <tr>
+          <th>ID</th><th>Event</th><th>Group</th>
+          <th>Name</th><th>Email</th><th>Phone</th>
+          <th>Route</th><th>Size</th>
+          <th>PaymentID</th>
+          <th>Status</th><th>Created</th><th>Receipt</th>
+        </tr>`;
+
+      state.rows.forEach(r=>{
+        const receiptCell = r.PaymentID
+          ? `<span class="link-btn" onclick="window.open('${API_BASE}/api/payments/${r.PaymentID}/receipt','_blank','noopener')">View</span>`
+          : '—';
+
+        const tr=document.createElement('tr');
+        tr.innerHTML=`
+          <td>${r.RegistrationID}</td>
+          <td>${r.EventID}</td>
+          <td>${r.GroupID ?? '—'}</td>
+          <td>${(r.FirstName||'')+' '+(r.LastName||'')}</td>
+          <td>${r.Email ?? '—'}</td>
+          <td>${r.Phone ?? '—'}</td>
+          <td>${r.Route ?? '—'}</td>
+          <td>${r.ShirtSize ?? '—'}</td>
+          <td>${r.PaymentID ?? '—'}</td>
+          <td><span class="pill ${r.Status}">${r.Status}</span></td>
+          <td>${fmt(r.CreatedAt)}</td>
+          <td>${receiptCell}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    else if (state.tab==='payments'){
+      thead.innerHTML = `
+        <tr>
+          <th>PayID</th><th>Event</th><th>Group</th><th>RegID</th>
+          <th>Type</th><th>Amount</th><th>Donation</th>
+          <th>Status</th><th>Due</th><th>Paid</th>
+          <th>Officer</th><th>Created</th>
+          <th>Receipt</th>
+        </tr>`;
+
+      state.rows.forEach(p=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`
+          <td>${p.PaymentID}</td>
+          <td>${p.EventID}</td>
+          <td>${p.GroupID ?? '—'}</td>
+          <td>${p.RegistrationID ?? '—'}</td>
+          <td>${p.PaymentType ?? '—'}</td>
+          <td>$${Number(p.Amount).toFixed(2)}</td>
+          <td>$${Number(p.DonationAmount||0).toFixed(2)}</td>
+          <td><span class="pill ${p.PaymentStatus}">${p.PaymentStatus}</span></td>
+          <td>${fmt(p.DueAt)}</td>
+          <td>${fmt(p.PaidAt)}</td>
+          <td>${p.ReceivedBy ?? '—'}</td>
+          <td>${fmt(p.CreatedAt)}</td>
+          <td><span class="link-btn" onclick="window.open('${API_BASE}/api/payments/${p.PaymentID}/receipt','_blank','noopener')">Open</span></td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    else{
+      thead.innerHTML=`
+        <tr>
+          <th>GroupID</th><th>Event</th>
+          <th>Name</th><th>Coordinator</th>
+          <th>Type</th><th>Size</th><th>Created</th>
+        </tr>`;
+
+      state.rows.forEach(g=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`
+          <td>${g.GroupID}</td>
+          <td>${g.EventID}</td>
+          <td>${g.GroupName}</td>
+          <td>${g.CoordinatorName ?? '—'}</td>
+          <td>${g.GroupType ?? '—'}</td>
+          <td>${g.WorkGroupSize ?? '—'}</td>
+          <td>${fmt(g.CreatedAt)}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    const pi = $('pageInfo');
+    if (pi) pi.textContent = `Page ${state.page} • ${state.total} total`;
+  }
+
+  /* ========= SEARCH (with 401 handling) ========= */
+  let aborter;
+
+  async function search(){
+    const key = $('readKey')?.value.trim();
+    if (!key){
+      highlightKey();
+      return setStatus('Please enter your staff read key.', true);
+    }
+
+    const rkEl = $('readKey');
+    if (rkEl) rkEl.classList.remove('field-error');
+
+    if (aborter) aborter.abort();
+    aborter = new AbortController();
+
+    try{
+      setStatus('Searching…');
+      const res = await fetch(pageUrl(),{
+        headers:{'x-staff-read-key':key},
+        signal:aborter.signal
+      });
+
+      const raw = await res.text();
+      let data={};
+      try{ data=JSON.parse(raw);}catch{}
+
+      if (!res.ok){
+        if (res.status===401){
+          highlightKey();
+          return setStatus('Incorrect or invalid staff key. Please try again.', true);
+        }
+        return setStatus(`Error ${res.status}: ${data?.error || raw}`, true);
+      }
+
+      state.rows=data.rows||[];
+      state.total=data.total||0;
+
+      // NEW: populate officer suggestions when on Payments tab
+      if (state.tab === 'payments') {
+        populateOfficerListFromPayments(state.rows);
+      }
+
+      render();
+
+      const showing = state.rows.length;
+      const total = state.total;
+      const pages = Math.max(1, Math.ceil((total||0) / state.pageSize));
+      const tabName = state.tab.charAt(0).toUpperCase() + state.tab.slice(1);
+      setStatus(`Showing ${showing} of ${total} result(s) — Page ${state.page} of ${pages} (${tabName})`);
+    }catch(e){
+      if (e.name==='AbortError') return;
+      console.error(e);
+      setStatus('Network error.', true);
+    }
+  }
+
+  function highlightKey(){
+    const rk=$('readKey');
+    if (!rk) return;
+    rk.classList.add('field-error','shake');
+    rk.addEventListener('animationend',()=>rk.classList.remove('shake'),{once:true});
+    rk.focus();
+  }
+
+  /* ========= OFFICER DATALIST ========= */
+  function populateOfficerListFromPayments(rows){
+    const dl = $('officerList');
+    if (!dl) return;
+    const names = new Set();
+    (rows || []).forEach(p => {
+      const n = (p.ReceivedBy || '').trim();
+      if (n) names.add(n);
+    });
+    dl.innerHTML = '';
+    [...names].sort().forEach(name=>{
+      const opt = document.createElement('option');
+      opt.value = name;
+      dl.appendChild(opt);
+    });
+  }
+
+  /* ========= CSV HELPERS ========= */
+  function normalizeRowsForCsv(rows){
+    return rows.map(r=>{
+      const c = {...r};
+      ['CreatedAt','DueAt','PaidAt','EventDate'].forEach(k=>{
+        if (c[k]) {
+          try { c[k] = new Date(c[k]).toISOString(); } catch {}
+        }
+      });
+      Object.keys(c).forEach(k=>{
+        if (typeof c[k]==='object' && c[k]!==null){
+          try { c[k]=JSON.stringify(c[k]); } catch { c[k]=String(c[k]); }
+        }
+      });
+      return c;
+    });
+  }
+
+  function buildCsvFromObjects(rows){
+    if (!rows || rows.length===0) return '';
+    const cols = [...new Set(rows.flatMap(r => Object.keys(r)))];
+    const header = cols.join(',');
+    const lines = rows.map(r =>
+      cols.map(c=>{
+        const v = r[c] ?? '';
+        const s = String(v).replace(/"/g,'""');
+        return /[",\n]/.test(s) ? `"${s}"` : s;
+      }).join(',')
+    );
+    return [header, ...lines].join('\n');
+  }
+
+  function downloadCsv(csvText, nameBase){
+    const blob = new Blob([csvText],{type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href=url;
+    a.download = `${nameBase}_${new Date().toISOString().slice(0,19)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  /* ========= EXPORT ========= */
+  on('exportBtn','click', async () =>{
+    if (state.exportMode === 'page') {
+      // Export only what is currently visible
+      if (!(state.rows && state.rows.length)) {
+        setStatus('No rows to export.', true);
+        return;
+      }
+      const rows = normalizeRowsForCsv(state.rows);
+      const csv = buildCsvFromObjects(rows);
+      downloadCsv(csv, `${state.tab}_page${state.page}`);
+      toast(`Exported ${rows.length} row(s) from current page.`);
+      return;
+    }
+
+    // Export ALL results (paginated)
+    await exportAllResults();
+  });
+
+  async function exportAllResults(){
+    const key = $('readKey')?.value.trim();
+    if (!key){
+      highlightKey();
+      setStatus('Please enter your staff read key.', true);
+      return;
+    }
+
+    const exportBtn = $('exportBtn');
+    if (exportBtn) exportBtn.disabled = true;
+
+    // Adjust if your API caps page size differently
+    const CHUNK_SIZE = 500;
+
+    let page = 1;
+    let total = 0;
+    let fetched = 0;
+    const allRows = [];
+
+    // Build base URL params from current filters
+    const base = new URLSearchParams(qs());
+    base.set('pageSize', CHUNK_SIZE);
+
+    setStatus('Preparing export (all results)…');
+    toast('Preparing export (all results)…');
+
+    try{
+      // First request — get total & first chunk
+      const p1 = new URLSearchParams(base);
+      p1.set('page', page);
+      const firstUrl = `${API_BASE}${tabPath()}?${p1.toString()}`;
+
+      const firstRes = await fetch(firstUrl, { headers:{'x-staff-read-key':key} });
+      const firstRaw = await firstRes.text();
+      let firstData = {};
+      try{ firstData = JSON.parse(firstRaw); }catch{}
+
+      if (!firstRes.ok){
+        if (firstRes.status===401){ highlightKey(); }
+        setStatus(`Export failed — Error ${firstRes.status}: ${firstData?.error || firstRaw}`, true);
+        return;
+      }
+
+      const rows1 = Array.isArray(firstData.rows) ? firstData.rows : [];
+      total = Number(firstData.total || rows1.length || 0);
+      allRows.push(...rows1);
+      fetched = allRows.length;
+
+      const tabName = state.tab.charAt(0).toUpperCase() + state.tab.slice(1);
+      setStatus(`Exporting (${tabName})… fetched ${Math.min(fetched,total)} of ${total}…`);
+      await new Promise(r => setTimeout(r, 0)); // yield to UI
+
+      const totalPages = Math.max(1, Math.ceil(total / CHUNK_SIZE));
+      for (page = 2; page <= totalPages; page++){
+        const p = new URLSearchParams(base);
+        p.set('page', page);
+        const url = `${API_BASE}${tabPath()}?${p.toString()}`;
+
+        const res = await fetch(url, { headers:{'x-staff-read-key':key} });
+        const raw = await res.text();
+        let data = {};
+        try{ data = JSON.parse(raw); }catch{}
+
+        if (!res.ok){
+          if (res.status===401){ highlightKey(); }
+          setStatus(`Export failed — Error ${res.status}: ${data?.error || raw}`, true);
+          return;
+        }
+
+        const chunk = Array.isArray(data.rows) ? data.rows : [];
+        allRows.push(...chunk);
+        fetched = allRows.length;
+
+        setStatus(`Exporting (${tabName})… fetched ${Math.min(fetched,total)} of ${total}…`);
+        await new Promise(r => setTimeout(r, 0)); // keep UI responsive
+      }
+
+      const normalized = normalizeRowsForCsv(allRows);
+      const csv = buildCsvFromObjects(normalized);
+      if (!csv){
+        setStatus('Nothing to export for the selected filters.', true);
+        return;
+      }
+
+      downloadCsv(csv, `${state.tab}_all`);
+      setStatus(`Export complete — ${normalized.length} row(s) (${tabName}).`);
+      toast(`Export complete — ${normalized.length} row(s).`);
+    }catch(e){
+      console.error(e);
+      setStatus('Network error during export.', true);
+    }finally{
+      if (exportBtn) exportBtn.disabled = false;
+    }
+  }
+
+  /* ========= BUTTONS ========= */
+  on('searchBtn','click', () =>{ state.page=1; search(); });
+
+  on('clearFiltersBtn','click', ()=>{
+    ['eventSel','statusSel','q','paidFrom','paidTo','officer'].forEach(id=>{
+      const el = $(id);
+      if (!el) return;
+      if (el.tagName === 'SELECT') el.value = '';
+      else el.value = '';
+    });
+    state.page = 1;
+    search();
+  });
+
+  on('prevBtn','click', () =>{ if(state.page>1){ state.page--; search(); } });
+  on('nextBtn','click', () =>{
+    const max=Math.max(1, Math.ceil((state.total||0)/state.pageSize));
+    if(state.page<max){ state.page++; search(); }
+  });
+
+  /* ========= TABS ========= */
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      state.tab = btn.dataset.tab;
+      state.page = 1;
+      search();
+    });
+  });
+
+})();
+</script>
+
+</body>
+</html>
